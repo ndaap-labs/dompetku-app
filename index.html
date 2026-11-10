@@ -232,6 +232,31 @@ dialog::backdrop{background:rgba(5,5,25,.6);-webkit-backdrop-filter:blur(4px);ba
 </dialog>
 <div id="toast"></div>
 
+<!-- Firebase SDK Compat Version -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+<script>
+  // Konfigurasi proyek Firebase Dompetku kamu
+  const firebaseConfig = {
+    apiKey: "AIzaSyD1Kpi4yIKylAw6NO2QDwhv1cV4nfJKwV8",
+    authDomain: "dompetku-6695e.firebaseapp.com",
+    projectId: "dompetku-6695e",
+    storageBucket: "dompetku-6695e.firebasestorage.app",
+    messagingSenderId: "736218555978",
+    appId: "1:736218555978:web:9abc27af850cdee1f028b3",
+    measurementId: "G-CKEZ68R23D"
+  };
+
+  // Inisialisasi Firebase
+  firebase.initializeApp(firebaseConfig);
+
+  // Variable global untuk dipanggil di script aplikasi
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+</script>
+
 <script>
 const CATS={makan:["Makanan","🍜","#F59E0B"],transport:["Transport","🚌","#3B82F6"],belanja:["Belanja","🛍️","#EC4899"],tagihan:["Tagihan","🧾","#8B5CF6"],hiburan:["Hiburan","🎮","#06B6D4"],sehat:["Kesehatan","💊","#F43F5E"],lain:["Lainnya","📦","#94A3B8"]};
 const $=s=>document.querySelector(s);
@@ -243,17 +268,6 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 
 let user=null;
 let per="day", anchor=new Date(), editId=null, shown=0;
-
-/* Cek Sesi Login yang Tersimpan (Persistent Login) */
-window.addEventListener("DOMContentLoaded", () => {
-  const savedUser = localStorage.getItem("dk_active_user");
-  if(savedUser){
-    user = JSON.parse(savedUser);
-    $("#auth").classList.add("hidden");
-    $("#app").classList.remove("hidden");
-    render();
-  }
-});
 
 const exps=()=>JSON.parse(localStorage.getItem(`dk_exp_${user?.email || 'guest'}`)||"[]");
 const saveExps=a=>{localStorage.setItem(`dk_exp_${user?.email || 'guest'}`,JSON.stringify(a));render()};
@@ -291,70 +305,79 @@ $("#eAmt").addEventListener("input", function(e) {
 /* Tema */
 $("#theme").onclick=()=>{const r=document.documentElement,d=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme:dark)").matches;r.dataset.theme=d?"light":"dark"};
 
-/* LOGIKA REGISTER (DAFTAR AKUN) */
+/* ===== FIREBASE AUTH ===== */
+const authMsg=c=>({
+ "auth/email-already-in-use":"Email sudah terdaftar. Silakan masuk.",
+ "auth/invalid-email":"Format email tidak valid.",
+ "auth/weak-password":"Kata sandi terlalu lemah (minimal 6 karakter).",
+ "auth/user-not-found":"Email atau kata sandi salah / belum terdaftar.",
+ "auth/wrong-password":"Email atau kata sandi salah / belum terdaftar.",
+ "auth/invalid-credential":"Email atau kata sandi salah / belum terdaftar.",
+ "auth/too-many-requests":"Terlalu banyak percobaan. Coba lagi beberapa saat.",
+ "auth/network-request-failed":"Koneksi internet bermasalah.",
+ "auth/operation-not-allowed":"Metode Email/Password belum diaktifkan di Firebase Console."
+}[c]||"Terjadi kesalahan ("+c+").");
+
+/* 1. Registrasi akun baru */
+function registerUser(name, email, password) {
+  return auth.createUserWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      console.log("User terdaftar:", userCredential.user);
+      toast("Registrasi berhasil! Akun tersimpan di Firebase ✓");
+      // simpan nama lengkap di profil Firebase
+      return userCredential.user.updateProfile({ displayName: name }).catch(()=>{});
+    })
+    .catch((error) => {
+      $("#rErr").textContent = authMsg(error.code);
+    });
+}
+
+/* 2. Login user */
+function loginUser(email, password) {
+  return auth.signInWithEmailAndPassword(email, password)
+    .then((userCredential) => {
+      console.log("User login:", userCredential.user);
+      loginForm.reset();
+      toast("Login berhasil ✓");
+    })
+    .catch((error) => {
+      $("#lErr").textContent = authMsg(error.code);
+    });
+}
+
 regForm.onsubmit=e=>{
  e.preventDefault();
- const name=$("#rName").value.trim();
- const email=$("#rEmail").value.trim().toLowerCase();
- const pass=$("#rPass").value;
-
- let users = JSON.parse(localStorage.getItem("dk_users") || "[]");
- 
- // Cek apakah email sudah terdaftar
- if(users.some(u => u.email === email)){
-   $("#rErr").textContent = "Email sudah terdaftar. Silakan masuk.";
-   return;
- }
-
- // Simpan user baru
- users.push({name, email, pass});
- localStorage.setItem("dk_users", JSON.stringify(users));
-
- // Auto login setelah daftar
- user = {name, email};
- localStorage.setItem("dk_active_user", JSON.stringify(user));
- 
- regForm.reset();
- $("#auth").classList.add("hidden");
- $("#app").classList.remove("hidden");
- render();
- toast("Akun berhasil dibuat ✓");
+ $("#rErr").textContent="";
+ registerUser($("#rName").value.trim(), $("#rEmail").value.trim().toLowerCase(), $("#rPass").value);
 };
 
-/* LOGIKA LOGIN (MASUK) */
 loginForm.onsubmit=e=>{
  e.preventDefault();
- const email=$("#lEmail").value.trim().toLowerCase();
- const pass=$("#lPass").value;
-
- let users = JSON.parse(localStorage.getItem("dk_users") || "[]");
- const found = users.find(u => u.email === email && u.pass === pass);
-
- if(!found){
-   $("#lErr").textContent = "Email atau kata sandi salah / belum terdaftar.";
-   return;
- }
-
- user = {name: found.name, email: found.email};
- localStorage.setItem("dk_active_user", JSON.stringify(user));
-
- loginForm.reset();
- $("#lErr").textContent = "";
- $("#auth").classList.add("hidden");
- $("#app").classList.remove("hidden");
- render();
- toast("Berhasil masuk ✓");
+ $("#lErr").textContent="";
+ loginUser($("#lEmail").value.trim().toLowerCase(), $("#lPass").value);
 };
 
-/* KELUAR (LOGOUT) */
-$("#out").onclick=()=>{
- localStorage.removeItem("dk_active_user");
- user = null;
- $("#app").classList.add("hidden");
- $("#auth").classList.remove("hidden");
- loginForm.reset();
- regForm.reset();
-};
+/* Keluar (logout) */
+$("#out").onclick=()=>auth.signOut();
+
+/* 3. Pemantau status login otomatis (realtime listener) */
+auth.onAuthStateChanged((fbUser) => {
+  if (fbUser) {
+    // User sedang login
+    console.log("User aktif:", fbUser.email);
+    user = { name: fbUser.displayName || fbUser.email, email: fbUser.email, uid: fbUser.uid };
+    $("#auth").classList.add("hidden");
+    $("#app").classList.remove("hidden");
+    render();
+  } else {
+    // User belum login / sudah logout
+    user = null;
+    $("#app").classList.add("hidden");
+    $("#auth").classList.remove("hidden");
+    loginForm.reset();
+    regForm.reset();
+  }
+});
 
 /* Periode & Filter Sinkron */
 function range(){
