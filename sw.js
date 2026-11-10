@@ -1,5 +1,5 @@
 /* Service Worker Dompetku - ubah VERSION setiap kali ada update file agar cache diperbarui */
-const VERSION = "dompetku-v1";
+const VERSION = "dompetku-v2";
 const SHELL = [
   "./",
   "./index.html",

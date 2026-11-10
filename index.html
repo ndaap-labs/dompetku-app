@@ -138,7 +138,6 @@ dialog::backdrop{background:rgba(5,5,25,.6);-webkit-backdrop-filter:blur(4px);ba
 .linkbtn:hover{text-decoration:underline}
 .ok{color:#10B981;font-size:13px;line-height:1.45;min-height:18px;margin-top:6px}
 .reset-title{font-weight:800;font-size:18px;margin:0 0 4px}
-#iosHelp ol{padding-left:20px;margin:10px 0 0;line-height:1.7;font-size:14.5px}
 </style>
 </head>
 <body>
@@ -207,8 +206,6 @@ dialog::backdrop{background:rgba(5,5,25,.6);-webkit-backdrop-filter:blur(4px);ba
      <div class="linkrow" style="justify-content:center;margin-top:10px"><button type="button" class="linkbtn" id="backLogin">← Kembali ke Masuk</button></div>
     </form>
    </div>
-
-   <button type="button" class="btn ghost install-btn hidden" style="width:100%;margin-top:14px">⬇ Pasang Aplikasi di Perangkat</button>
   </div>
 
  </div>
@@ -222,7 +219,6 @@ dialog::backdrop{background:rgba(5,5,25,.6);-webkit-backdrop-filter:blur(4px);ba
   </div>
   <div class="who">
    <span class="live">Sistem Aktif</span>
-   <button class="btn ghost ib install-btn hidden" aria-label="Pasang aplikasi" title="Pasang aplikasi"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg></button>
    <button class="btn ghost ib" id="theme" aria-label="Ganti tema">◐</button>
    <button class="btn ghost" id="out">Keluar</button>
   </div>
@@ -270,15 +266,6 @@ dialog::backdrop{background:rgba(5,5,25,.6);-webkit-backdrop-filter:blur(4px);ba
   <div class="end"><button type="button" class="btn ghost" id="cancel">Batal</button><button class="btn">Simpan</button></div>
  </form>
 </dialog>
-<dialog id="iosHelp">
- <h3 style="margin:0">Pasang Dompetku di iPhone / iPad</h3>
- <ol>
-  <li>Buka halaman ini di <b>Safari</b>.</li>
-  <li>Ketuk tombol <b>Bagikan</b> (kotak dengan panah ke atas).</li>
-  <li>Pilih <b>Tambahkan ke Layar Utama</b>, lalu ketuk <b>Tambah</b>.</li>
- </ol>
- <div class="end"><button type="button" class="btn" id="iosClose">Mengerti</button></div>
-</dialog>
 <div id="toast"></div>
 
 <!-- Firebase SDK CDN (Compat) - harus dimuat SEBELUM script aplikasi di bawah -->
@@ -307,7 +294,7 @@ dialog::backdrop{background:rgba(5,5,25,.6);-webkit-backdrop-filter:blur(4px);ba
 </script>
 
 <script>
-const CATS={makan:["Makanan","🍜","#F59E0B"],transport:["Transport","🚌","#3B82F6"],belanja:["Belanja","🛍️","#EC4899"],tagihan:["Tagihan","🧾","#8B5CF6"],hiburan:["Hiburan","🎮","#06B6D4"],sehat:["Kesehatan","💊","#F43F5E"],lain:["Lainnya","📦","#94A3B8"]};
+const CATS={makan:["Makanan","🍜","#F59E0B"],bensin:["Bensin","⛽","#3B82F6"],belanja:["Belanja","🛍️","#EC4899"],minuman:["Minuman","🥤","#8B5CF6"],jajanan:["Jajanan","🍩","#06B6D4"],rokok:["Rokok","🚬","#78716C"],sehat:["Kesehatan","💊","#F43F5E"],lain:["Lainnya","📦","#94A3B8"]};
 const $=s=>document.querySelector(s);
 const rp=n=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n);
 const formatNumber=n=>new Intl.NumberFormat("id-ID").format(n);
@@ -318,7 +305,10 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 let user=null;
 let per="day", anchor=new Date(), editId=null, shown=0;
 
-const exps=()=>JSON.parse(localStorage.getItem(`dk_exp_${user?.email || 'guest'}`)||"[]");
+/* Kategori lama otomatis dipindah ke nama baru supaya data lama tetap tampil */
+const CAT_MIGRATE={transport:"bensin",tagihan:"minuman",hiburan:"jajanan"};
+const fixCat=x=>{const k=CAT_MIGRATE[x.cat]||x.cat;return CATS[k]?{...x,cat:k}:{...x,cat:"lain"}};
+const exps=()=>JSON.parse(localStorage.getItem(`dk_exp_${user?.email || 'guest'}`)||"[]").map(fixCat);
 const saveExps=a=>{localStorage.setItem(`dk_exp_${user?.email || 'guest'}`,JSON.stringify(a));render()};
 function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),1800)}
 
@@ -495,36 +485,7 @@ resetForm.onsubmit = e => {
     });
 };
 
-/* ===== PWA: pasang aplikasi & service worker ===== */
-let deferredPrompt = null;
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-const isStandalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-const showInstall = show => document.querySelectorAll(".install-btn").forEach(b=>b.classList.toggle("hidden", !show));
-
-window.addEventListener("beforeinstallprompt", e=>{
-  e.preventDefault();
-  deferredPrompt = e;
-  if(!isStandalone()) showInstall(true);
-});
-window.addEventListener("appinstalled", ()=>{
-  deferredPrompt = null;
-  showInstall(false);
-  toast("Dompetku berhasil dipasang ✓");
-});
-document.addEventListener("click", async e=>{
-  if(!e.target.closest(".install-btn")) return;
-  if(deferredPrompt){
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    showInstall(false);
-  } else if(isIOS){
-    $("#iosHelp").showModal();
-  }
-});
-$("#iosClose").onclick = () => $("#iosHelp").close();
-if(isIOS && !isStandalone()) showInstall(true);
-
+/* ===== PWA: service worker (aplikasi tetap bisa dipasang lewat menu browser) ===== */
 if("serviceWorker" in navigator && location.protocol.startsWith("http")){
   window.addEventListener("load", ()=>{
     navigator.serviceWorker.register("sw.js").catch(err=>console.warn("Service worker gagal:", err));
@@ -693,14 +654,6 @@ $("#eForm").onsubmit=e=>{
  toast("Berhasil disimpan ✓");
 };
 
-// Service Worker PWA
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("sw.js").catch(err => {
-      console.log("Service Worker registrasi gagal: ", err);
-    });
-  });
-}
 </script>
 </body>
 </html>
