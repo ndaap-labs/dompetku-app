@@ -1,5 +1,5 @@
 /* Service Worker Dompetku - ubah VERSION setiap kali ada update file agar cache diperbarui */
-const VERSION = "dompetku-v3";
+const VERSION = "dompetku-v4";
 const SHELL = [
   "./",
   "./index.html",
@@ -70,19 +70,17 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // File statis (ikon, manifest): pakai cache, perbarui di belakang layar
+  // File statis (ikon, manifest, dll): selalu cek versi terbaru ke server dulu,
+  // pakai cache hanya kalau offline. Jadi logo/manifest baru langsung terpakai.
   e.respondWith(
-    caches.match(req).then((cached) => {
-      const fresh = fetch(req)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(VERSION).then((c) => c.put(req, copy));
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached || fresh;
-    })
+    fetch(new Request(req, { cache: "no-cache" }))
+      .then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(VERSION).then((c) => c.put(req, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(req))
   );
 });
