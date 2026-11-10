@@ -232,13 +232,14 @@ dialog::backdrop{background:rgba(5,5,25,.6);-webkit-backdrop-filter:blur(4px);ba
 </dialog>
 <div id="toast"></div>
 
-<!-- Firebase SDK Compat Version -->
+<!-- ==================== FIREBASE ==================== -->
+<!-- Firebase SDK Compat Mode (harus dimuat SEBELUM script aplikasi di bawah) -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
 <script>
-  // Konfigurasi proyek Firebase Dompetku kamu
+  // Konfigurasi Firebase Proyek Dompetku
   const firebaseConfig = {
     apiKey: "AIzaSyD1Kpi4yIKylAw6NO2QDwhv1cV4nfJKwV8",
     authDomain: "dompetku-6695e.firebaseapp.com",
@@ -252,10 +253,11 @@ dialog::backdrop{background:rgba(5,5,25,.6);-webkit-backdrop-filter:blur(4px);ba
   // Inisialisasi Firebase
   firebase.initializeApp(firebaseConfig);
 
-  // Variable global untuk dipanggil di script aplikasi
-  const auth = firebase.auth();
-  const db = firebase.firestore();
+  // Variabel global agar bisa diakses di script aplikasi & console
+  window.auth = firebase.auth();
+  window.db = firebase.firestore();
 </script>
+<!-- ================================================== -->
 
 <script>
 const CATS={makan:["Makanan","🍜","#F59E0B"],transport:["Transport","🚌","#3B82F6"],belanja:["Belanja","🛍️","#EC4899"],tagihan:["Tagihan","🧾","#8B5CF6"],hiburan:["Hiburan","🎮","#06B6D4"],sehat:["Kesehatan","💊","#F43F5E"],lain:["Lainnya","📦","#94A3B8"]};
