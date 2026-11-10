@@ -1,9 +1,10 @@
 /* Service Worker Dompetku - ubah VERSION setiap kali ada update file agar cache diperbarui */
-const VERSION = "dompetku-v2";
+const VERSION = "dompetku-v3";
 const SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
+  "./favicon.svg",
   "./favicon.ico",
   "./favicon-192.png",
   "./favicon-512.png",
