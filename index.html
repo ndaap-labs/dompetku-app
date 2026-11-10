@@ -232,32 +232,30 @@ dialog::backdrop{background:rgba(5,5,25,.6);-webkit-backdrop-filter:blur(4px);ba
 </dialog>
 <div id="toast"></div>
 
-<!-- ==================== FIREBASE ==================== -->
-<!-- Firebase SDK Compat Mode (harus dimuat SEBELUM script aplikasi di bawah) -->
+<!-- Firebase SDK CDN (Compat) - harus dimuat SEBELUM script aplikasi di bawah -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
 <script>
-  // Konfigurasi Firebase Proyek Dompetku
-  const firebaseConfig = {
-    apiKey: "AIzaSyD1Kpi4yIKylAw6NO2QDwhv1cV4nfJKwV8",
-    authDomain: "dompetku-6695e.firebaseapp.com",
-    projectId: "dompetku-6695e",
-    storageBucket: "dompetku-6695e.firebasestorage.app",
-    messagingSenderId: "736218555978",
-    appId: "1:736218555978:web:9abc27af850cdee1f028b3",
-    measurementId: "G-CKEZ68R23D"
-  };
+  // Inisialisasi aman
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      apiKey: "AIzaSyD1Kpi4yIKylAw6NO2QDwhv1cV4nfJKwV8",
+      authDomain: "dompetku-6695e.firebaseapp.com",
+      projectId: "dompetku-6695e",
+      storageBucket: "dompetku-6695e.firebasestorage.app",
+      messagingSenderId: "736218555978",
+      appId: "1:736218555978:web:9abc27af850cdee1f028b3",
+      measurementId: "G-CKEZ68R23D"
+    });
+  }
 
-  // Inisialisasi Firebase
-  firebase.initializeApp(firebaseConfig);
-
-  // Variabel global agar bisa diakses di script aplikasi & console
+  // Variabel Global
   window.auth = firebase.auth();
   window.db = firebase.firestore();
+  console.log("Firebase berhasil dimuat!");
 </script>
-<!-- ================================================== -->
 
 <script>
 const CATS={makan:["Makanan","🍜","#F59E0B"],transport:["Transport","🚌","#3B82F6"],belanja:["Belanja","🛍️","#EC4899"],tagihan:["Tagihan","🧾","#8B5CF6"],hiburan:["Hiburan","🎮","#06B6D4"],sehat:["Kesehatan","💊","#F43F5E"],lain:["Lainnya","📦","#94A3B8"]};
